@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>XENO Track Record</title>
+<meta name="description" content="Gold futures track record in R multiples, self-reported from my trading journal.">
+<meta property="og:title" content="XENO Track Record">
+<meta property="og:description" content="Gold futures results in R, updated every trading day.">
+<meta name="theme-color" content="#0F1218">
+<style>[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one dark column of cards. Header with the name and the update time, KPI row,
+   equity curve, monthly and session tables side by side, then the full trade list. Single dark theme by choice. */
+:root{
+  color-scheme:dark;
+  --bg:#0F1218; --card:#161B24; --card2:#1D2430; --line:#262E3B; --ink:#E9EDF3; --muted:#8C96A8; --faint:#5F6A7C;
+  --accent:#6C9BFF; --accent-soft:rgba(108,155,255,.16);
+  --go:#35C98B; --stop:#F0646E; --series:#6C9BFF;
+  --font:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;margin:0;font-variant-numeric:tabular-nums}
+.wrap{max-width:1100px;margin:0 auto;padding-inline:20px;padding-block:36px 64px}
+@media (max-width:640px){.wrap{padding-inline:16px;padding-block:24px 48px}}
+h1,h2,p{margin:0}
+h1{font-size:1.75rem;font-weight:700;letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+h2{font-size:1rem;font-weight:600}
+.muted{color:var(--muted)} .small{font-size:.8125rem} .pos{color:var(--go)} .neg{color:var(--stop)}
+.stack{display:flex;flex-direction:column;gap:14px}
+.head{display:flex;flex-wrap:wrap;gap:12px 20px;justify-content:space-between;align-items:flex-end;margin-bottom:22px}
+.brand{font-weight:700;letter-spacing:.14em;font-size:.8125rem;color:var(--muted);margin-bottom:6px}
+.sub{color:var(--muted);font-size:.875rem;margin-top:6px;max-width:62ch}
+.seg{display:inline-flex;background:var(--card2);border-radius:10px;padding:3px;gap:2px}
+.seg button{font:600 .8125rem var(--font);color:var(--muted);background:none;border:0;border-radius:8px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--bg);color:var(--ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}
+.cardhead{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+@media (max-width:980px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:1px;min-width:0}
+.kpi .k{font-size:.75rem;color:var(--muted)} .kpi .v{font-size:1.5rem;font-weight:700;letter-spacing:-.02em} .kpi .s{font-size:.75rem;color:var(--faint)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:14px;align-items:start}
+.eq{position:relative;touch-action:pan-y}
+.eq svg{display:block;width:100%}
+.eq .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.75rem;font-weight:600;padding:5px 9px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-100%)}
+.tblwrap{overflow-x:auto;margin-inline:-6px}
+table{border-collapse:collapse;width:100%;font-size:.875rem}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.75rem;color:var(--muted);font-weight:500}
+tbody tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+td small{display:block;color:var(--muted);font-size:.75rem}
+.tag{display:inline-block;font-size:.6875rem;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--card2);color:var(--muted);margin-left:6px;vertical-align:middle}
+@media (max-width:560px){.hide-sm{display:none}}
+.more{font:600 .875rem var(--font);border-radius:10px;padding:9px 16px;border:1px solid var(--line);background:var(--card2);color:var(--ink);cursor:pointer;margin-top:12px}
+.note{color:var(--faint);font-size:.8125rem;max-width:75ch;margin-top:22px;display:flex;flex-direction:column;gap:6px}
+.empty{color:var(--muted);text-align:center;padding:40px 12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="brand">XENO</div>
+      <h1>Track record</h1>
+      <p class="sub">Gold futures, results in R. Self-reported from my trading journal, not verified by a broker.</p>
+    </div>
+    <div class="stack" style="gap:8px;align-items:flex-end">
+      <div class="seg" role="group" aria-label="Period" id="src">
+        <button data-src="all" aria-pressed="true">All</button>
+        <button data-src="live" aria-pressed="false">Since 5 Oct</button>
+        <button data-src="journal" aria-pressed="false">Jun–Sep journal</button>
+      </div>
+      <span class="muted small" id="updated">Loading…</span>
+    </div>
+  </div>
+
+  <div id="body" class="stack">
+    <div class="card"><div class="empty">Loading the track record…</div></div>
+  </div>
+
+  <div class="note">
+    <p>R is the result of a trade divided by the risk set at entry: +2R means twice the amount risked, −1R a full stop. Break-even trades count as 0R.</p>
+    <p>Trades from 5 October 2026 come from a log kept at the time of each trade. The June to September trades come from an earlier spreadsheet; many have no recorded entry time. Open trades are not counted.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = (s, r) => (r || document).querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MINUS = '−', DASH = '–';
+const rfmt = r => (r > 0 ? '+' : r < 0 ? MINUS : '') + Math.abs(r).toFixed(2) + 'R';
+const tone = n => n > 0 ? 'pos' : n < 0 ? 'neg' : '';
+const dayUTC = s => { const p = s.split('-').map(Number); return Date.UTC(p[0], p[1]-1, p[2]); };
+const niceDay = s => new Date(dayUTC(s)).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+const shortDay = s => new Date(dayUTC(s)).toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
+const monthName = k => new Date(dayUTC(k + '-01')).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'});
+const sessName = s => { s = String(s || '').toLowerCase(); return s.indexOf('asi') === 0 ? 'Asia' : s.indexOf('lon') === 0 ? 'London' : s.indexOf('new') === 0 ? 'New York' : 'Not recorded'; };
+let ALL = [], src = 'all', showAll = false, EQ = null;
+
+function stats(list){
+  let gp = 0, gl = 0, w = 0, l = 0, best = null, worst = null;
+  list.forEach(t => { if (t.r > 0){ gp += t.r; w++; } else if (t.r < 0){ gl -= t.r; l++; } if (best === null || t.r > best) best = t.r; if (worst === null || t.r < worst) worst = t.r; });
+  const n = list.length;
+  return {n, w, l, net: gp - gl, pf: gl > 0 ? gp / gl : (gp > 0 ? Infinity : null), exp: n ? (gp - gl) / n : 0, best, worst};
+}
+const pfText = s => s.pf === null ? DASH : s.pf === Infinity ? '∞' : s.pf.toFixed(2);
+function series(list){
+  const pts = []; let cum = 0;
+  list.forEach(t => { cum += t.r; const p = pts[pts.length - 1]; if (p && p.d === t.d){ p.net += t.r; p.cum = cum; } else pts.push({d: t.d, net: t.r, cum}); });
+  let peak = 0, mdd = 0;
+  pts.forEach(p => { if (p.cum > peak) peak = p.cum; if (peak - p.cum > mdd) mdd = peak - p.cum; });
+  return {pts, mdd};
+}
+function ticks(lo, hi){
+  if (lo === hi){ lo -= 1; hi += 1; }
+  const raw = (hi - lo) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag, step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+  const out = []; for (let k = Math.floor(lo / step); k <= Math.ceil(hi / step); k++) out.push(+(k * step).toFixed(6)); return out;
+}
+function drawEq(){
+  const el = $('#eq'); if (!el) return;
+  const S = series(view());
+  if (!S.pts.length){ el.innerHTML = '<div class="empty">No closed trades in this period.</div>'; EQ = null; return; }
+  const W = Math.max(280, el.clientWidth || 700), H = 280, m = {l: 50, r: 10, t: 12, b: 22};
+  const xs = [{d: '', net: 0, cum: 0, start: true}].concat(S.pts), last = xs.length - 1;
+  const v = xs.map(p => p.cum), tk = ticks(Math.min.apply(null, v), Math.max.apply(null, v)), y0 = tk[0], y1 = tk[tk.length - 1];
+  const X = i => m.l + i * (W - m.l - m.r) / (last || 1), Y = c => m.t + (y1 - c) * (H - m.t - m.b) / (y1 - y0);
+  const line = xs.map((p, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.cum).toFixed(1)).join('');
+  const txt = 'fill="var(--muted)" font-size="11" font-family="var(--font)"';
+  let g = '';
+  tk.forEach(c => { g += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + Y(c).toFixed(1) + '" y2="' + Y(c).toFixed(1) + '" stroke="var(--line)"' + (c === 0 ? '' : ' stroke-dasharray="2 5"') + '/><text x="' + (m.l - 8) + '" y="' + (Y(c) + 4).toFixed(1) + '" text-anchor="end" ' + txt + '>' + (c < 0 ? MINUS : '') + Math.abs(c) + 'R</text>'; });
+  const end = xs[last];
+  el.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" height="' + H + '" role="img" aria-label="Cumulative result in R by trading day, ending at ' + rfmt(end.cum) + '">' + g +
+    '<path d="' + line + 'L' + X(last).toFixed(1) + ' ' + Y(0).toFixed(1) + 'L' + X(0).toFixed(1) + ' ' + Y(0).toFixed(1) + 'Z" fill="var(--series)" fill-opacity=".14"/>' +
+    '<path d="' + line + '" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '<circle cx="' + X(last).toFixed(1) + '" cy="' + Y(end.cum).toFixed(1) + '" r="4.5" fill="var(--series)" stroke="var(--card)" stroke-width="2"/>' +
+    '<text x="' + m.l + '" y="' + (H - 4) + '" ' + txt + '>' + esc(niceDay(xs[1].d)) + '</text>' +
+    (last > 1 ? '<text x="' + (W - m.r) + '" y="' + (H - 4) + '" text-anchor="end" ' + txt + '>' + esc(niceDay(end.d)) + '</text>' : '') +
+    '<line class="cross" y1="' + m.t + '" y2="' + (H - m.b) + '" stroke="var(--faint)" visibility="hidden"/><circle class="hdot" r="4.5" fill="var(--card)" stroke="var(--series)" stroke-width="2" visibility="hidden"/></svg><div class="tip" hidden></div>';
+  EQ = {xs, X, Y, W, m};
+}
+function eqMove(e){
+  const el = e.currentTarget; if (!EQ) return;
+  const svg = $('svg', el), r = svg.getBoundingClientRect(), k = r.width / EQ.W, last = EQ.xs.length - 1;
+  const i = Math.max(0, Math.min(last, Math.round(((e.clientX - r.left) / k - EQ.m.l) / ((EQ.W - EQ.m.l - EQ.m.r) / (last || 1))))), p = EQ.xs[i], x = EQ.X(i), y = EQ.Y(p.cum);
+  const cr = $('.cross', el), dot = $('.hdot', el), tip = $('.tip', el);
+  cr.setAttribute('x1', x); cr.setAttribute('x2', x); cr.setAttribute('visibility', 'visible');
+  dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('visibility', 'visible');
+  tip.textContent = p.start ? 'Start' : niceDay(p.d) + '  ·  day ' + rfmt(p.net) + '  ·  total ' + rfmt(p.cum);
+  tip.hidden = false;
+  const half = tip.offsetWidth / 2 + 2;
+  tip.style.left = Math.max(half, Math.min(el.clientWidth - half, svg.offsetLeft + x * k)) + 'px'; tip.style.top = Math.max(26, svg.offsetTop + y * k - 12) + 'px';
+}
+function eqLeave(e){ const el = e.currentTarget; ['.cross','.hdot'].forEach(s => { const n = $(s, el); if (n) n.setAttribute('visibility', 'hidden'); }); const t = $('.tip', el); if (t) t.hidden = true; }
+
+const view = () => src === 'all' ? ALL : ALL.filter(t => t.src === src);
+function table(head, rows){ return '<div class="tblwrap"><table><thead><tr>' + head + '</tr></thead><tbody>' + rows + '</tbody></table></div>'; }
+function render(){
+  document.querySelectorAll('#src button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.src === src)));
+  const list = view(), s = stats(list), S = series(list);
+  if (!list.length){ $('#body').innerHTML = '<div class="card"><div class="empty">No closed trades in this period yet.</div></div>'; return; }
+  const kpi = (k, v, cls, sub) => '<div class="kpi"><span class="k">' + k + '</span><span class="v ' + (cls || '') + '">' + v + '</span><span class="s">' + sub + '</span></div>';
+  const first = list[0].d, last = list[list.length - 1].d;
+  const months = {}; list.forEach(t => { (months[t.d.slice(0,7)] = months[t.d.slice(0,7)] || []).push(t); });
+  const sess = {}; list.forEach(t => { const k = sessName(t.s); (sess[k] = sess[k] || []).push(t); });
+  const row = (lbl, x) => '<tr><td>' + lbl + '</td><td class="r">' + x.n + '</td><td class="r">' + Math.round(x.w / x.n * 100) + '%</td><td class="r hide-sm">' + pfText(x) + '</td><td class="r ' + tone(x.net) + '"><b>' + rfmt(x.net) + '</b></td></tr>';
+  const sorted = list.slice().reverse(), shown = showAll ? sorted : sorted.slice(0, 40);
+  $('#body').innerHTML =
+    '<div class="kpis">' + kpi('Net result', rfmt(s.net), tone(s.net), shortDay(first) + ' – ' + shortDay(last)) + kpi('Trades', s.n, '', s.w + ' won · ' + s.l + ' lost') +
+    kpi('Win rate', Math.round(s.w / s.n * 100) + '%', '', 'break-even counts as not won') + kpi('Profit factor', pfText(s), '', 'gross won ÷ gross lost') +
+    kpi('Per trade', rfmt(s.exp), tone(s.exp), 'average result') + kpi('Max drawdown', S.mdd > 0 ? MINUS + S.mdd.toFixed(2) + 'R' : DASH, S.mdd > 0 ? 'neg' : '', 'peak to trough, daily') + '</div>' +
+    '<div class="card"><div class="cardhead"><h2>Equity curve</h2><span class="muted small">cumulative R by trading day</span></div><div class="eq" id="eq"></div></div>' +
+    '<div class="two"><div class="card"><div class="cardhead"><h2>By month</h2></div>' +
+      table('<th>Month</th><th class="r">Trades</th><th class="r">Win rate</th><th class="r hide-sm">PF</th><th class="r">Net</th>', Object.keys(months).sort().reverse().map(k => row(esc(monthName(k)), stats(months[k]))).join('')) + '</div>' +
+    '<div class="card"><div class="cardhead"><h2>By session</h2></div>' +
+      table('<th>Session</th><th class="r">Trades</th><th class="r">Win rate</th><th class="r hide-sm">PF</th><th class="r">Net</th>', ['Asia','London','New York','Not recorded'].filter(k => sess[k]).map(k => row(k, stats(sess[k]))).join('')) + '</div></div>' +
+    '<div class="card"><div class="cardhead"><h2>Every trade</h2><span class="muted small">' + list.length + ' closed trades, newest first</span></div>' +
+      table('<th>Date</th><th>Trade</th><th class="hide-sm">Session</th><th class="hide-sm">Grade</th><th class="r">Result</th>', shown.map(t =>
+        '<tr><td>' + esc(niceDay(t.d)) + (t.t ? '<small>' + esc(t.t) + ' New York</small>' : '') + '</td><td>' + esc((t.dir + ' ' + t.i).trim() || DASH) + (t.src === 'journal' ? '<span class="tag">journal</span>' : '') + '</td><td class="hide-sm">' + esc(sessName(t.s)) + '</td><td class="hide-sm">' + esc(t.g || DASH) + '</td><td class="r ' + tone(t.r) + '"><b>' + rfmt(t.r) + '</b></td></tr>').join('')) +
+      (sorted.length > 40 ? '<button class="more" id="more">' + (showAll ? 'Show the latest 40' : 'Show all ' + sorted.length + ' trades') + '</button>' : '') + '</div>';
+  const eq = $('#eq'); eq.addEventListener('pointermove', eqMove); eq.addEventListener('pointerdown', eqMove); eq.addEventListener('pointerleave', eqLeave);
+  drawEq();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-src]'); if (b){ src = b.dataset.src; showAll = false; return render(); }
+  if (e.target.id === 'more'){ showAll = !showAll; render(); }
+});
+let rz = 0; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawEq, 150); });
+
+fetch('data.json', {cache: 'no-store'}).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+  ALL = (Array.isArray(d.trades) ? d.trades : []).filter(t => t && typeof t.r === 'number' && t.d).sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : (a.ts || 0) - (b.ts || 0)));
+  $('#updated').textContent = d.updatedAt ? 'Updated ' + new Date(d.updatedAt).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}) + ' (Paris)' : '';
+  render();
+}).catch(() => {
+  $('#updated').textContent = '';
+  $('#body').innerHTML = '<div class="card"><div class="empty">The track record could not be loaded. Reload the page in a moment.</div></div>';
+});
+})();
+</script>
+
+</body>
+</html>
